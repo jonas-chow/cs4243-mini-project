@@ -49,7 +49,7 @@ class RecognitionModel:
 
         validset_loader = DataLoader(
             validset,
-            batch_size=1,
+            batch_size = 1,
             num_workers=0,
             pin_memory=True,
             shuffle=False,
@@ -140,8 +140,8 @@ if __name__ == "__main__":
     recognition_model = RecognitionModel(device)
 
     learning_params = {
-        'batch_size': 50,
-        'epoch': 5,
+        'batch_size': 64,
+        'epoch': 32,
         'lr': 1e-4,
         'valid_freq': 1,
         'save_freq': 1

@@ -15,7 +15,8 @@ def get_features(image):
     # note: this is a very extreme resizing, but bigger images will also mean longer training process
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     img = cv2.resize(img, (256, 256))
-    return np.reshape(img, (256 * 256, 1)).astype(np.float32)
+    ret = img.reshape((1,256,256)).astype(np.float32)
+    return ret
     
 
 class RecognitionDataset(Dataset):

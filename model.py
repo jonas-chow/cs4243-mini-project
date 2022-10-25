@@ -16,7 +16,7 @@ class BaseNN(nn.Module):
         self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3), padding=(1, 1))
         self.conv2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))
         self.conv3 = nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(1, 1))
-        self.fc1   = nn.Linear(1344, 256)
+        self.fc1   = nn.Linear(65536, 256)
         self.fc2   = nn.Linear(256, 128)
         self.fc3   = nn.Linear(128, 128)
         self.fc4   = nn.Linear(128, categories)
