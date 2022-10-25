@@ -19,7 +19,7 @@ class RecognitionModel:
     def __init__(self, device="cuda:0", model_path=None):
         # Initialize model
         self.device = device
-        self.model = BaseNN().to(self.device)
+        self.model = BaseNN().to(self.device).cuda()
         if model_path is not None:
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             print("Model loaded")
