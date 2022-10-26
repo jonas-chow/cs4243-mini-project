@@ -116,9 +116,8 @@ class RecognitionModel:
         torch.save(self.model.state_dict(), os.path.join(pwd, 'model_' + str(best_model_id)))
         return best_model_id
 
-    def predict(self, test_loader):
+    def predict(self, test_loader, results={}):
         self.model.eval()
-        results = {}
         with torch.no_grad():            
             for batch in tqdm(test_loader):
                 # Parse batch data
