@@ -62,7 +62,8 @@ class OneImage(Dataset):
     """
     def __init__(self, image_path):
         features = get_features(cv2.imread(image_path))
-        self.data = [(features, image_path)]
+        head, tail = os.path.split(image_path)
+        self.data = [(features, tail)]
     
     def __getitem__(self, idx):
         return self.data[idx]

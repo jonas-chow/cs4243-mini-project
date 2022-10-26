@@ -19,7 +19,7 @@ class RecognitionModel:
     def __init__(self, device="cuda:0", model_path=None):
         # Initialize model
         self.device = device
-        self.model = BaseNN().to(self.device).cuda()
+        self.model = BaseNN().to(self.device)
         if model_path is not None:
             self.model.load_state_dict(torch.load(model_path, map_location=self.device))
             print("Model loaded")
@@ -71,8 +71,8 @@ class RecognitionModel:
             num_batches = 0
 
             for batch_features, batch_labels in trainset_loader:
-                batch_features = batch_features.cuda()
-                batch_labels = batch_labels.cuda()
+                batch_features = batch_features.to(self.device)
+                batch_labels = batch_labels.to(self.device)
                 scores = self.model(batch_features)
 
                 loss = criterion(scores, batch_labels)
@@ -99,8 +99,8 @@ class RecognitionModel:
                 valid_num_batches = 0
 
                 for valid_batch_features, valid_batch_labels in validset_loader:
-                    valid_batch_features = valid_batch_features.cuda()
-                    valid_batch_labels = valid_batch_labels.cuda()
+                    valid_batch_features = valid_batch_features.to(self.device)
+                    valid_batch_labels = valid_batch_labels.to(self.device)
                     valid_scores = self.model(valid_batch_features)
 
                     valid_loss = criterion(valid_scores, valid_batch_labels)
@@ -118,19 +118,23 @@ class RecognitionModel:
 
     def predict(self, test_loader, results={}):
         self.model.eval()
-        with torch.no_grad():            
-            for batch in tqdm(test_loader):
+        with torch.no_grad():   
+            # can tqdm this if we have big batches         
+            for batch in test_loader:
                 # Parse batch data
                 input_tensor = batch[0].to(self.device)
-                image_path = batch[1]
+                image_path = batch[1][0]
+
+                categories = ["normal", "carrying", "threat"]
 
                 classification = self.model(input_tensor)
 
                 # not too sure what these do
                 probs = torch.sigmoid(classification).cpu()
                 classification = classification.cpu()
+                classification = torch.argmax(classification).item()
 
-                results[image_path] = classification
+                results[image_path] = categories[classification]
 
         return results
 

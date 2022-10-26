@@ -56,7 +56,7 @@ if __name__ == '__main__':
     This script performs inference using the trained singing transcription model in main.py.
     
     Sample usage:
-    python inference.py --save_model_path ./results/model_4 --test_path ./data/test
+    python inference.py --save_model_path ./model_4 --test_path ./data/test
     """
 
     parser = argparse.ArgumentParser()
