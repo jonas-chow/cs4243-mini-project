@@ -12,4 +12,15 @@ $ python3 dataset.py
 
 # trains the model
 $ python3 main.py
+
+# evaluates the model against the test set, where X is the model number
+$ python3 inference.py --save_model_path ./modelX
+
+# compares your inference with the actual test set
+$ python3 compare.py
+```
+
+If you want to test your model on one image or on some other directory, can do
+```
+$ python3 inference.py --save_model_path <path to model> --test_path <path to image>
 ```

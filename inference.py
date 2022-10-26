@@ -60,7 +60,7 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--save_model_path', help='path to the trained model')
+    parser.add_argument('--save_model_path', help='path to the trained model', required=True)
     parser.add_argument('--test_path', default='./data/test', help='path to the image(s) to be tested, either directory or file')
     
     args = parser.parse_args()
