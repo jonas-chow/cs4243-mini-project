@@ -58,7 +58,7 @@ class RecognitionModel:
 
         # Set optimizer and loss functions... ???
         optimizer = optim.Adam(self.model.parameters(), lr=learning_params['lr'])
-        criterion = nn.CrossEntropyLoss(ignore_index=100)
+        criterion = nn.CrossEntropyLoss()
 
         start_time = time.time()
         best_model_id = -1

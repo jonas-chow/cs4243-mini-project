@@ -49,7 +49,10 @@ class RecognitionDataset(Dataset):
             "threat": 2,
         }
 
-        return annotation_map[annotation]
+        index = annotation_map[annotation]
+        label = np.zeros(3, dtype=np.float32)
+        label[index] = 1.0
+        return label
 
     def __len__(self):
         return len(self.data)

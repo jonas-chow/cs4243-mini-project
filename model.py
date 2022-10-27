@@ -34,4 +34,4 @@ class BaseNN(nn.Module):
         out = F.relu(self.fc3(out))
         out = self.fc4(out)
 
-        return out
+        return F.softmax(out, dim=1)
