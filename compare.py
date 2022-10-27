@@ -10,6 +10,10 @@ with open(os.path.join(pwd, "predictions.json")) as json_data:
 
 ok = 0
 fail = 0
+stats = {
+    "normal": {"normal": 0, "carrying": 0, "threat": 0}, 
+    "carrying": {"normal": 0, "carrying": 0, "threat": 0}, 
+    "threat": {"normal": 0, "carrying": 0, "threat": 0}}
 
 for file_name in predictions:
     predicted = predictions[file_name]
@@ -21,4 +25,9 @@ for file_name in predictions:
         print("FAIL", file_name, predicted, actual)
         fail += 1
 
+    stats[actual][predicted] += 1
+
+
 print("ok:", ok, "fail:", fail)
+print("success rate:", ok / (ok + fail))
+print(json.dumps(stats, indent=4, sort_keys=True))
