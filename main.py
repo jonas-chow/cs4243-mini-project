@@ -63,6 +63,7 @@ class RecognitionModel:
         start_time = time.time()
         best_model_id = -1
         min_valid_loss = 10000
+        prev_loss = 100000
         epoch_num = learning_params['epoch']
         valid_every_k_epoch = learning_params['valid_freq']
 
@@ -96,6 +97,14 @@ class RecognitionModel:
             print('epoch=', epoch, '\t time=', elapsed_time,
                     '\t loss=', loss)
 
+            if prev_loss < loss :
+                trigger_times += 1
+                if trigger_times >= patience:
+                    break
+            else :
+                trigger_times = 0
+                prev_loss = loss   
+
 
             if epoch % valid_every_k_epoch == 0 : 
                 valid_running_loss = 0
@@ -116,10 +125,8 @@ class RecognitionModel:
                 if valid_loss < min_valid_loss:
                     best_model_id = epoch
                     min_valid_loss = valid_loss
-                else:
-                    trigger_times += 1
-                    if trigger_times >= patience:
-                        break
+                
+                     
 
         print('Training done in {:.1f} minutes.'.format((time.time()-start_time)/60))
         torch.save(self.model.state_dict(), os.path.join(pwd, 'model_' + str(best_model_id)))
