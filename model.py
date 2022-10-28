@@ -13,7 +13,7 @@ class BaseNN(nn.Module):
         
         # so i have no idea how many input channels we should have
         # is it width * height * 3??? is it just 3?? idkkkkk
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=(3, 3), padding=(1, 1))
+        self.conv1 = nn.Conv1d(1, 32, kernel_size=(5, 5), padding=(2, 2))
         self.conv2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))
         self.conv3 = nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(1, 1))
         self.fc1   = nn.Linear(65536, 256)

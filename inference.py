@@ -56,11 +56,11 @@ if __name__ == '__main__':
     This script performs inference using the trained singing transcription model in main.py.
     
     Sample usage:
-    python inference.py --m ./model_4 --t ./data/test
+    python inference.py --m ./model --t ./data/test
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--m', help='path to the trained model', required=True)
+    parser.add_argument('--m', default='./model', help='path to the trained model')
     parser.add_argument('--t', default='./data/test', help='path to the image(s) to be tested, either directory or file')
     
     args = parser.parse_args()

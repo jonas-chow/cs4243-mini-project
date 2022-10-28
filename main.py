@@ -63,12 +63,12 @@ class RecognitionModel:
         start_time = time.time()
         best_model_id = -1
         min_valid_loss = 10000
-        prev_loss = 100000
+        # prev_loss = 100000
         epoch_num = learning_params['epoch']
         valid_every_k_epoch = learning_params['valid_freq']
 
         trigger_times = 0
-        patience = 5
+        patience = 10
 
         for epoch in range(epoch_num):  
             running_loss = 0
@@ -97,13 +97,13 @@ class RecognitionModel:
             print('epoch=', epoch, '\t time=', elapsed_time,
                     '\t loss=', loss)
 
-            if prev_loss < loss :
-                trigger_times += 1
-                if trigger_times >= patience:
-                    break
-            else :
-                trigger_times = 0
-                prev_loss = loss   
+            # if prev_loss < loss :
+            #     trigger_times += 1
+            #     if trigger_times >= patience:
+            #         break
+            # else :
+            #     trigger_times = 0
+            #     prev_loss = loss   
 
 
             if epoch % valid_every_k_epoch == 0 : 
@@ -125,11 +125,15 @@ class RecognitionModel:
                 if valid_loss < min_valid_loss:
                     best_model_id = epoch
                     min_valid_loss = valid_loss
-                
-                     
+                    torch.save(self.model.state_dict(), os.path.join(pwd, 'model'))
+                    print("lower validation loss: model saved to ./model")
+                else:
+                    trigger_times += 1
+                    print(f"higher validation loss than minimum: {trigger_times} times")
+                    if trigger_times >= patience:
+                        break
 
         print('Training done in {:.1f} minutes.'.format((time.time()-start_time)/60))
-        torch.save(self.model.state_dict(), os.path.join(pwd, 'model_' + str(best_model_id)))
         return best_model_id
 
     def predict(self, test_loader, results={}):
@@ -161,7 +165,7 @@ if __name__ == "__main__":
     learning_params = {
         'batch_size': 64,
         'epoch': 32,
-        'lr': 1e-4,
+        'lr': 1e-6,
         'valid_freq': 1,
         'save_freq': 1
     }
