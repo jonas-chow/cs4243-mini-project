@@ -163,8 +163,8 @@ if __name__ == "__main__":
     recognition_model = RecognitionModel(device)
 
     learning_params = {
-        'batch_size': 64,
-        'epoch': 32,
+        'batch_size': 32,
+        'epoch': 50,
         'lr': 1e-6,
         'valid_freq': 1,
         'save_freq': 1
