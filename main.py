@@ -165,7 +165,7 @@ if __name__ == "__main__":
     learning_params = {
         'batch_size': 32,
         'epoch': 50,
-        'lr': 1e-6,
+        'lr': 5e-5,
         'valid_freq': 1,
         'save_freq': 1
     }
