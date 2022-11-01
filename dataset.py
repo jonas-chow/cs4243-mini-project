@@ -16,7 +16,7 @@ def get_features(image):
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     img = cv2.resize(img, (256, 256))
     img = cv2.Canny(img, 50, 150)
-    ret = img.reshape((1,256,256)).astype(np.float32)
+    ret = np.array([img, img, img], dtype=np.float32)
     return ret
     
 
