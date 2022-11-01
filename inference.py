@@ -11,7 +11,7 @@ from dataset import OneImage
 
     
 def predict_one_song(model, input_path, results):
-    test_dataset = OneImage(input_path)
+    test_dataset = OneImage(input_path, device)
     test_loader = DataLoader(
         test_dataset,
         batch_size=1,
@@ -24,22 +24,22 @@ def predict_one_song(model, input_path, results):
     return results
 
 
-def predict_whole_dir(model, test_dir, results):
+def predict_whole_dir(model, test_dir, results, device):
     results = {}
 
     for song in tqdm(os.listdir(test_dir)):
         input_path = os.path.join(test_dir, song)
-        results = predict_one_song(model, input_path, results)
+        results = predict_one_song(model, input_path, results, device)
 
     return results
 
 
-def make_predictions(testset_path, output_path, model):
+def make_predictions(testset_path, output_path, model, device):
     results = {}
     if os.path.isfile(testset_path):
-        results = predict_one_song(model, testset_path, results)
+        results = predict_one_song(model, testset_path, results, device)
     elif os.path.isdir(testset_path):
-        results = predict_whole_dir(model, testset_path, results)
+        results = predict_whole_dir(model, testset_path, results, device)
     else:
         print ("\"input\" argument is not valid")
         return {}
@@ -72,4 +72,4 @@ if __name__ == '__main__':
     pwd = os.path.dirname(__file__)
     output_path = os.path.join(pwd, "predictions.json")
 
-    make_predictions(args.t, output_path, best_model)
+    make_predictions(args.t, output_path, best_model, device)

@@ -118,8 +118,8 @@ class OneImage(Dataset):
     """
     For preprocessing and preparing testing data of one image...
     """
-    def __init__(self, image_path):
-        has_person, features = get_features(image_path)
+    def __init__(self, image_path, device):
+        has_person, features = get_features(image_path, device)
         head, tail = os.path.split(image_path)
         self.data = [(features, tail)]
     
