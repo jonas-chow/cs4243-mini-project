@@ -55,7 +55,7 @@ if __name__ == "__main__":
 
             # Results
             # uncomment this line if you want to see the boxes
-            # results.save()
+            results.save()
             res = results.pandas().xyxy[0]
             res["area"] = (res["xmax"] - res["xmin"]) * (res["ymax"] - res["ymin"])
             persons = res[(res.name == "person")]

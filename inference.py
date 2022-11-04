@@ -12,6 +12,12 @@ from dataset import OneVideo
     
 def predict_one_video(model, input_path, results, yolo_model):
     test_dataset = OneVideo(input_path, yolo_model)
+
+    # if no frames in the video had a person, or some other thing went wrong
+    if len(test_dataset) == 0:
+        results[input_path] = 0
+        return results
+    
     test_loader = DataLoader(
         test_dataset,
         batch_size=1,
@@ -66,7 +72,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, device=device, _verbose=False)
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, _verbose=False)
+    yolo_model.to(device)
 
     #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
     

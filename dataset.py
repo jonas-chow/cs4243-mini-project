@@ -49,30 +49,32 @@ def get_features(video_path, yolo_model):
 
         # Results
         # uncomment this line if you want to see the boxes
-        # results.save()
+        results.save()
         res = results.pandas().xyxy[0]
+        has_persons = 'person' in res['name'].unique()
+        if not has_persons:
+            continue
+
         res["area"] = (res["xmax"] - res["xmin"]) * (res["ymax"] - res["ymin"])
         persons = res[(res.name == "person")]
-        has_persons = not persons.empty
+        
+        persons = persons.sort_values(by=["area"], ascending=False)
 
-        if has_persons:
-            persons = persons.sort_values(by=["area"], ascending=False)
+        xmin = np.int32(persons['xmin'].iloc[0])
+        ymin = np.int32(persons['ymin'].iloc[0])
+        xmax = np.int32(persons['xmax'].iloc[0])
+        ymax = np.int32(persons['ymax'].iloc[0])        
 
-            xmin = np.int32(persons['xmin'].iloc[0])
-            ymin = np.int32(persons['ymin'].iloc[0])
-            xmax = np.int32(persons['xmax'].iloc[0])
-            ymax = np.int32(persons['ymax'].iloc[0])        
+        # not including other objects because if the person moves a lot, 
+        # he will likely collide with a bunch of objects and nothing will be cropped
 
-            # not including other objects because if the person moves a lot, 
-            # he will likely collide with a bunch of objects and nothing will be cropped
+        min_x = min(xmin, min_x)
+        min_y = min(ymin, min_y)
+        max_x = max(xmax, max_x)
+        max_y = max(ymax, max_y)
 
-            min_x = min(xmin, min_x)
-            min_y = min(ymin, min_y)
-            max_x = max(xmax, max_x)
-            max_y = max(ymax, max_y)
-
-            # only include frames with people
-            frames.append(frame)
+        # only include frames with people
+        frames.append(frame)
 
     if not len(frames):
         return []
@@ -193,7 +195,8 @@ class OneVideo(Dataset):
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, device=device, _verbose=False)
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, _verbose=False)
+    yolo_model.to(device)
 
     pwd = os.path.dirname(__file__)
     train_dir = os.path.join(pwd, "data", "train")

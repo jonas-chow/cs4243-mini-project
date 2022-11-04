@@ -8,6 +8,7 @@ import time
 import pickle
 import numpy as np
 from tqdm import tqdm
+from scipy import stats
 
 from model import BaseNN
 from dataset import RecognitionDataset
@@ -138,6 +139,7 @@ class RecognitionModel:
 
     def predict(self, test_loader, results={}):
         self.model.eval()
+        res = []
         with torch.no_grad():   
             # can tqdm this if we have big batches         
             for batch in test_loader:
@@ -156,6 +158,7 @@ class RecognitionModel:
 
                 results[image_path] = categories[classification]
 
+        results[image_path] = stats.mode(res, axis=None, keepdims=False).mode
         return results
 
 if __name__ == "__main__":
