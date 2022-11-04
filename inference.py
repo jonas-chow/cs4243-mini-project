@@ -7,11 +7,11 @@ import argparse
 from tqdm import tqdm
 from pathlib import Path
 from main import RecognitionModel
-from dataset import OneImage
+from dataset import OneVideo
 
     
-def predict_one_song(model, input_path, results, yolo_model):
-    test_dataset = OneImage(input_path, yolo_model)
+def predict_one_video(model, input_path, results, yolo_model):
+    test_dataset = OneVideo(input_path, yolo_model)
     test_loader = DataLoader(
         test_dataset,
         batch_size=1,
@@ -29,7 +29,7 @@ def predict_whole_dir(model, test_dir, results, yolo_model):
 
     for song in tqdm(os.listdir(test_dir)):
         input_path = os.path.join(test_dir, song)
-        results = predict_one_song(model, input_path, results, yolo_model)
+        results = predict_one_video(model, input_path, results, yolo_model)
 
     return results
 
@@ -37,7 +37,7 @@ def predict_whole_dir(model, test_dir, results, yolo_model):
 def make_predictions(testset_path, output_path, model, yolo_model):
     results = {}
     if os.path.isfile(testset_path):
-        results = predict_one_song(model, testset_path, results, yolo_model)
+        results = predict_one_video(model, testset_path, results, yolo_model)
     elif os.path.isdir(testset_path):
         results = predict_whole_dir(model, testset_path, results, yolo_model)
     else:

@@ -8,85 +8,147 @@ import numpy as np
 from tqdm import tqdm
 import cv2
 
-def get_features(image_path, yolo_model):
-    # probably need to expand on this
-    # possible ideas: use grayscale, sobel lines
-    image = cv2.imread(image_path)
-    img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+def get_features(video_path, yolo_model):
+    cap = cv2.VideoCapture(video_path)
 
-    # Images
-    imgs = [image_path]  # batch of images
+    if not cap.isOpened():
+        return []
 
-    # Inference
-    results = yolo_model(imgs)
+    target_fps = 1
+    actual_fps = cap.get(cv2.CAP_PROP_FPS)
+    hop = np.floor(actual_fps / target_fps)
 
-    # Results
+    i = 0
+    frames = []
 
-    # uncomment this line if you want to see the boxes
-    # results.save()
-    res = results.pandas().xyxy[0]  # img1 predictions (pandas)
-    res["area"] = (res["xmax"] - res["xmin"]) * (res["ymax"] - res["ymin"])
-    persons = res[(res.name == "person")]
-    has_persons = not persons.empty
+    ret, frame = cap.read()
+    if not ret:
+        return []
 
-    if has_persons:
-        persons = persons.sort_values(by=["area"], ascending=False)
+    width, height, channels = frame.shape
+    min_x = width - 1
+    min_y = height - 1
+    max_x = 0
+    max_y = 0
 
-        person_xmin = np.int32(persons['xmin'].iloc[0])
-        person_ymin = np.int32(persons['ymin'].iloc[0])
-        person_xmax = np.int32(persons['xmax'].iloc[0])
-        person_ymax = np.int32(persons['ymax'].iloc[0])        
+    # read images and get bounding box that contains all people
+    while(cap.isOpened()):
+        # Capture frame-by-frame
+        ret, frame = cap.read()
+        i += 1
+        # skip some frames otherwise the dataset is too big, and the movement is too subtle?
+        if i % hop != 0:
+            continue
+        if not ret:
+            break
+        
+        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        xmin = person_xmin
-        ymin = person_ymin
-        xmax = person_xmax
-        ymax = person_ymax
+        # Inference
+        results = yolo_model(frame)
 
-        for idx, row in res.iterrows():
-            # don't expand with more people
-            if row['name'] == "person":
-                continue
+        # Results
+        # uncomment this line if you want to see the boxes
+        # results.save()
+        res = results.pandas().xyxy[0]
+        res["area"] = (res["xmax"] - res["xmin"]) * (res["ymax"] - res["ymin"])
+        persons = res[(res.name == "person")]
+        has_persons = not persons.empty
 
-            row_xmin = np.int32(row['xmin'])
-            row_ymin = np.int32(row['ymin'])
-            row_xmax = np.int32(row['xmax'])
-            row_ymax = np.int32(row['ymax'])
-            if not (row_xmax < person_xmin or row_xmin > person_xmax or
-                row_ymax < person_ymin or row_ymin > person_ymax):
-                # intersects with the person
-                xmin = min(xmin, row_xmin)
-                xmax = max(xmax, row_xmax)
-                ymin = min(ymin, row_ymin)
-                ymax = max(ymax, row_ymax)
+        if has_persons:
+            persons = persons.sort_values(by=["area"], ascending=False)
 
-        img = img[ymin:ymax, xmin:xmax]
+            xmin = np.int32(persons['xmin'].iloc[0])
+            ymin = np.int32(persons['ymin'].iloc[0])
+            xmax = np.int32(persons['xmax'].iloc[0])
+            ymax = np.int32(persons['ymax'].iloc[0])        
 
-    img = cv2.resize(img, (256, 256))
-    lines = cv2.Canny(img, 50, 150)
-    ret = np.array([lines, lines, lines], dtype=np.float32)
+            # not including other objects because if the person moves a lot, 
+            # he will likely collide with a bunch of objects and nothing will be cropped
 
-    return (has_persons, ret)
-    
+            min_x = min(xmin, min_x)
+            min_y = min(ymin, min_y)
+            max_x = max(xmax, max_x)
+            max_y = max(ymax, max_y)
+
+            # only include frames with people
+            frames.append(frame)
+
+    if not len(frames):
+        return []
+
+    num_frames = len(frames)
+
+    # give a padding because maybe not including what they hold
+    min_x = max(0, min_x - 10)
+    min_y = max(0, min_y - 10)
+    max_x = min(width - 1, max_x + 10)
+    max_y = min(height - 1, max_y + 10)
+
+    frames = [frame[min_y:max_y, min_x:max_x] for frame in frames]
+
+    previous_mask = None
+
+    ret = []
+
+    for i in range(num_frames - 1):
+        curr = cv2.resize(frames[i], (256, 256))
+        next = cv2.resize(frames[i - 1], (256, 256))
+
+        # output: height x width x 2 ndarray which represents how much the pixel moved
+        flow = cv2.calcOpticalFlowFarneback(curr, next, None, 0.5, 3, 30, 3, 7, 1.5, cv2.OPTFLOW_FARNEBACK_GAUSSIAN)
+        mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
+
+        # drop movements that are too small (likely to be background)
+        # higher max likely means that the person move fast?
+        thresholds = mag > (max(np.mean(mag), np.max(mag) * 0.4))
+
+        # drop videos where it's likely the background movement is too noisy
+        if np.sum(thresholds) > (width * height) * 0.4:
+            continue
+        
+        mask = thresholds * np.ones(thresholds.shape)
+
+        # make the lines thicker?
+        mask = cv2.dilate(mask, np.ones((11, 11)), iterations=1)
+
+        if previous_mask is None:
+            previous_mask = mask
+            continue
+
+        # union to prevent too mant missing details
+        # there might be a case for intersection here too: more accurate, but lose more info
+        curr_mask = np.zeros(mask.shape, dtype=np.bool8)
+        curr_mask[np.logical_or(mask == 1, previous_mask == 1)] = True
+
+        # canny before masking so that the circles don't appear as artifacts
+        removed = np.uint8(cv2.Canny(curr, 50, 150) * curr_mask)
+        # duplicated because model wants 3 channels
+        ret.append(np.array([removed, removed, removed], dtype=np.float32))
+
+        previous_mask = mask
+
+    return ret
 
 class RecognitionDataset(Dataset):
     """
         Preprocess the images to produce training and validation data here
     """
-    def __init__(self, annotations, image_dir, yolo_model):
+    def __init__(self, annotations, video_dir, yolo_model):
         data = []
 
-        for image_name in tqdm(os.listdir(image_dir)):
+        for video_name in tqdm(os.listdir(video_dir)):
             # the label
-            label = self.get_label(annotations, image_name)
+            label = self.get_label(annotations, video_name)
 
             # get features based on 
-            has_person, features = get_features(
-                os.path.join(image_dir, image_name), 
+            frame_features = get_features(
+                os.path.join(video_dir, video_name), 
                 yolo_model,
             )
 
-            if has_person:
-                data.append((features, label))
+            for frame in frame_features:
+                data.append((frame, label))
 
         self.data = data
 
@@ -111,14 +173,17 @@ class RecognitionDataset(Dataset):
     def __getitem__(self, idx):
         return self.data[idx]    
 
-class OneImage(Dataset):
+class OneVideo(Dataset):
     """
     For preprocessing and preparing testing data of one image...
     """
-    def __init__(self, image_path, yolo_model):
-        has_person, features = get_features(image_path, yolo_model)
-        head, tail = os.path.split(image_path)
-        self.data = [(features, tail)]
+    def __init__(self, video_path, yolo_model):
+        data = []
+        frame_features = get_features(video_path, yolo_model)
+        head, tail = os.path.split(video_path)
+        for feature in frame_features:
+            data.append((feature, tail))
+        self.data = data
     
     def __getitem__(self, idx):
         return self.data[idx]
