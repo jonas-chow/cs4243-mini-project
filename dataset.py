@@ -8,20 +8,17 @@ import numpy as np
 from tqdm import tqdm
 import cv2
 
-def get_features(image_path, device):
+def get_features(image_path, yolo_model):
     # probably need to expand on this
     # possible ideas: use grayscale, sobel lines
     image = cv2.imread(image_path)
     img = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    # Model
-    model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, device=device, _verbose=False)
-
     # Images
     imgs = [image_path]  # batch of images
 
     # Inference
-    results = model(imgs)
+    results = yolo_model(imgs)
 
     # Results
 
@@ -75,7 +72,7 @@ class RecognitionDataset(Dataset):
     """
         Preprocess the images to produce training and validation data here
     """
-    def __init__(self, annotations, image_dir, device):
+    def __init__(self, annotations, image_dir, yolo_model):
         data = []
 
         for image_name in tqdm(os.listdir(image_dir)):
@@ -85,7 +82,7 @@ class RecognitionDataset(Dataset):
             # get features based on 
             has_person, features = get_features(
                 os.path.join(image_dir, image_name), 
-                device,
+                yolo_model,
             )
 
             if has_person:
@@ -118,8 +115,8 @@ class OneImage(Dataset):
     """
     For preprocessing and preparing testing data of one image...
     """
-    def __init__(self, image_path, device):
-        has_person, features = get_features(image_path, device)
+    def __init__(self, image_path, yolo_model):
+        has_person, features = get_features(image_path, yolo_model)
         head, tail = os.path.split(image_path)
         self.data = [(features, tail)]
     
@@ -131,6 +128,8 @@ class OneImage(Dataset):
 
 if __name__ == "__main__":
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, device=device, _verbose=False)
+
     pwd = os.path.dirname(__file__)
     train_dir = os.path.join(pwd, "data", "train")
     valid_dir = os.path.join(pwd, "data", "valid")
@@ -138,9 +137,10 @@ if __name__ == "__main__":
     with open(os.path.join(pwd, "data", "annotations.json")) as json_data:
         annotations = json.load(json_data)
 
-    train_dataset = RecognitionDataset(annotations, train_dir, device)
+    train_dataset = RecognitionDataset(annotations, train_dir, yolo_model)
     with open(os.path.join(pwd, "data", "train.pickle"), 'wb') as f:
         pickle.dump(train_dataset, f)
-    valid_dataset = RecognitionDataset(annotations, valid_dir, device)
+    
+    valid_dataset = RecognitionDataset(annotations, valid_dir, yolo_model)
     with open(os.path.join(pwd, "data", "valid.pickle"), 'wb') as f:
         pickle.dump(valid_dataset, f)

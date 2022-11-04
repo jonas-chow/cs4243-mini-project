@@ -10,8 +10,8 @@ from main import RecognitionModel
 from dataset import OneImage
 
     
-def predict_one_song(model, input_path, results):
-    test_dataset = OneImage(input_path, device)
+def predict_one_song(model, input_path, results, yolo_model):
+    test_dataset = OneImage(input_path, yolo_model)
     test_loader = DataLoader(
         test_dataset,
         batch_size=1,
@@ -24,22 +24,22 @@ def predict_one_song(model, input_path, results):
     return results
 
 
-def predict_whole_dir(model, test_dir, results, device):
+def predict_whole_dir(model, test_dir, results, yolo_model):
     results = {}
 
     for song in tqdm(os.listdir(test_dir)):
         input_path = os.path.join(test_dir, song)
-        results = predict_one_song(model, input_path, results, device)
+        results = predict_one_song(model, input_path, results, yolo_model)
 
     return results
 
 
-def make_predictions(testset_path, output_path, model, device):
+def make_predictions(testset_path, output_path, model, yolo_model):
     results = {}
     if os.path.isfile(testset_path):
-        results = predict_one_song(model, testset_path, results, device)
+        results = predict_one_song(model, testset_path, results, yolo_model)
     elif os.path.isdir(testset_path):
-        results = predict_whole_dir(model, testset_path, results, device)
+        results = predict_whole_dir(model, testset_path, results, yolo_model)
     else:
         print ("\"input\" argument is not valid")
         return {}
@@ -66,10 +66,12 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, device=device, _verbose=False)
+
     #os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
     
     best_model = RecognitionModel(device, args.m)
     pwd = os.path.dirname(__file__)
     output_path = os.path.join(pwd, "predictions.json")
 
-    make_predictions(args.t, output_path, best_model, device)
+    make_predictions(args.t, output_path, best_model, yolo_model)
