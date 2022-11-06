@@ -9,10 +9,6 @@ from tqdm import tqdm
 import cv2
 
 def get_features(video_path, yolo_model):
-    extension = os.path.splitext(video_path)[-1].lower()
-    if extension != ".mp4":
-        return []
-
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return []

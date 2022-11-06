@@ -7,8 +7,8 @@ import os
 import time
 import pickle
 import numpy as np
+import pandas
 from tqdm import tqdm
-from scipy import stats
 
 from model import BaseNN
 from dataset import RecognitionDataset
@@ -161,9 +161,9 @@ class RecognitionModel:
                 classification = classification.cpu()
                 classification = torch.argmax(classification).item()
 
-                results[image_path] = categories[classification]
+                res.append(categories[classification])
 
-        results[image_path] = stats.mode(res, axis=None, keepdims=False).mode
+        results[image_path] = pandas.DataFrame(res).mode().iloc[0][0]
         return results
 
 if __name__ == "__main__":
