@@ -65,9 +65,6 @@ if __name__ == '__main__':
     Sample usage:
     python inference.py --m ./model --t ./data/test
     """
-    default_m = f".{os.sep}model"
-    default_t = f".{os.sep}data{os.sep}test"
-
     parser = argparse.ArgumentParser()
     parser.add_argument('--m', default=os.path.normpath('./model'), help='path to the trained model')
     parser.add_argument('--t', default=os.path.normpath('./data/test'), help='path to the image(s) to be tested, either directory or file')
