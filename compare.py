@@ -17,7 +17,11 @@ stats = {
 
 for file_name in predictions:
     predicted = predictions[file_name]
-    actual = annotations[file_name]
+    try:
+        actual = annotations[file_name]
+    except KeyError:
+        # prediction not annotated
+        continue
     if (predicted == actual):
         print("PASS", file_name, predicted, actual)
         ok += 1

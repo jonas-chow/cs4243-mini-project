@@ -161,7 +161,7 @@ class RecognitionModel:
                 classification = classification.cpu()
                 classification = torch.argmax(classification).item()
 
-                results[image_path] = categories[classification]
+                res.append(categories[classification])
 
         results[image_path] = stats.mode(res, axis=None, keepdims=False).mode
         return results

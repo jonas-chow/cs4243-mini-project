@@ -15,7 +15,6 @@ def predict_one_video(model, input_path, results, yolo_model):
 
     # if no frames in the video had a person, or some other thing went wrong
     if len(test_dataset) == 0:
-        results[input_path] = 0
         return results
     
     test_loader = DataLoader(
@@ -66,8 +65,8 @@ if __name__ == '__main__':
     """
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--m', default='./model', help='path to the trained model')
-    parser.add_argument('--t', default='./data/test', help='path to the image(s) to be tested, either directory or file')
+    parser.add_argument('--m', default=os.path.normpath('./model'), help='path to the trained model')
+    parser.add_argument('--t', default=os.path.normpath('./data/test'), help='path to the image(s) to be tested, either directory or file')
     
     args = parser.parse_args()
 
