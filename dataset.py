@@ -143,6 +143,11 @@ class RecognitionDataset(Dataset):
         data = []
 
         for video_name in tqdm(os.listdir(video_dir)):
+            # Check if its an .mp4
+            ext = os.path.splitext(video_name)[-1].lower()
+            if ext != '.mp4':
+                continue
+
             # the label
             label = self.get_label(annotations, video_name)
 
@@ -210,6 +215,7 @@ if __name__ == "__main__":
 
     train_dataset = RecognitionDataset(annotations, train_dir, yolo_model)
     with open(os.path.join(pwd, "data", "train.pickle"), 'wb') as f:
+
         pickle.dump(train_dataset, f)
     
     valid_dataset = RecognitionDataset(annotations, valid_dir, yolo_model)
