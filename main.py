@@ -76,7 +76,10 @@ class RecognitionModel:
             num_batches = 0
 
             for batch_features, batch_labels in trainset_loader:
-                batch_features = batch_features.to(self.device)
+                # transform grayscale input into "color" input
+                batch_features = torch.unsqueeze(batch_features, 1)
+                batch_features = torch.repeat_interleave(batch_features, 3, 1)
+                batch_features = batch_features.to(device=self.device, dtype=torch.float)
                 batch_labels = batch_labels.to(self.device)
                 scores = self.model(batch_features)
 
@@ -112,7 +115,9 @@ class RecognitionModel:
                 valid_num_batches = 0
 
                 for valid_batch_features, valid_batch_labels in validset_loader:
-                    valid_batch_features = valid_batch_features.to(self.device)
+                    valid_batch_features = torch.unsqueeze(valid_batch_features, 1)
+                    valid_batch_features = torch.repeat_interleave(valid_batch_features, 3, 1)
+                    valid_batch_features = valid_batch_features.to(device=self.device, dtype=torch.float)
                     valid_batch_labels = valid_batch_labels.to(self.device)
                     valid_scores = self.model(valid_batch_features)
 
@@ -144,15 +149,15 @@ class RecognitionModel:
             # can tqdm this if we have big batches         
             for batch in test_loader:
                 # Parse batch data
-                input_tensor = batch[0].to(self.device)
+                input_tensor = torch.unsqueeze(batch[0], 1)
+                input_tensor = torch.repeat_interleave(input_tensor, 3, 1)
+                input_tensor = input_tensor.to(device=self.device, dtype=torch.float)
                 image_path = batch[1][0]
 
                 categories = ["normal", "carrying", "threat"]
 
                 classification = self.model(input_tensor)
 
-                # not too sure what these do
-                probs = torch.sigmoid(classification).cpu()
                 classification = classification.cpu()
                 classification = torch.argmax(classification).item()
 
@@ -162,7 +167,7 @@ class RecognitionModel:
         return results
 
 if __name__ == "__main__":
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     recognition_model = RecognitionModel(device)
 
     learning_params = {

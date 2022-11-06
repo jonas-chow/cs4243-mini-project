@@ -9,8 +9,11 @@ from tqdm import tqdm
 import cv2
 
 def get_features(video_path, yolo_model):
-    cap = cv2.VideoCapture(video_path)
+    extension = os.path.splitext(video_path)[-1].lower()
+    if extension != ".mp4":
+        return []
 
+    cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
         return []
 
@@ -49,7 +52,7 @@ def get_features(video_path, yolo_model):
 
         # Results
         # uncomment this line if you want to see the boxes
-        results.save()
+        # results.save()
         res = results.pandas().xyxy[0]
         has_persons = 'person' in res['name'].unique()
         if not has_persons:
@@ -126,7 +129,7 @@ def get_features(video_path, yolo_model):
         # canny before masking so that the circles don't appear as artifacts
         removed = np.uint8(cv2.Canny(curr, 50, 150) * curr_mask)
         # duplicated because model wants 3 channels
-        ret.append(np.array([removed, removed, removed], dtype=np.float32))
+        ret.append(removed)
 
         previous_mask = mask
 
@@ -194,7 +197,7 @@ class OneVideo(Dataset):
         return len(self.data)
 
 if __name__ == "__main__":
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     yolo_model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True, _verbose=False)
     yolo_model.to(device)
 
