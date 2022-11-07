@@ -96,8 +96,6 @@ if __name__ == "__main__":
 
         previous_mask = None
 
-        mog2.apply(cv2.resize(frames[0], (256, 256)))
-
         for i in range(num_frames - 1):
             curr = cv2.resize(frames[i], (256, 256))
             next = cv2.resize(frames[i - 1], (256, 256))

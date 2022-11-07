@@ -89,9 +89,7 @@ def get_features(video_path, yolo_model):
     frames = [frame[min_y:max_y, min_x:max_x] for frame in frames]
 
     previous_mask = None
-
     mog2 = cv2.createBackgroundSubtractorMOG2()
-    mog2.apply(cv2.resize(frames[0], (256, 256)))
 
     ret = []
 
