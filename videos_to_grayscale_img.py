@@ -7,7 +7,7 @@ import torch
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--d', help='directory of videos', required=True)
+    parser.add_argument('--d', help='directory of videos', default="vids")
     args = parser.parse_args()
 
     pwd = os.path.dirname(__file__)
@@ -32,11 +32,13 @@ if __name__ == "__main__":
         if not ret:
             break
 
-        width, height, channels = frame.shape
+        height, width, channels = frame.shape
         min_x = width - 1
         min_y = height - 1
         max_x = 0
         max_y = 0
+
+        mog2 = cv2.createBackgroundSubtractorMOG2()
 
         while(cap.isOpened()):
             # Capture frame-by-frame
@@ -55,7 +57,7 @@ if __name__ == "__main__":
 
             # Results
             # uncomment this line if you want to see the boxes
-            results.save()
+            #results.save()
             res = results.pandas().xyxy[0]
             res["area"] = (res["xmax"] - res["xmin"]) * (res["ymax"] - res["ymin"])
             persons = res[(res.name == "person")]
@@ -94,43 +96,62 @@ if __name__ == "__main__":
 
         previous_mask = None
 
+        mog2.apply(cv2.resize(frames[0], (256, 256)))
+
         for i in range(num_frames - 1):
             curr = cv2.resize(frames[i], (256, 256))
             next = cv2.resize(frames[i - 1], (256, 256))
+
+            mog_mask = mog2.apply(curr)
+            mog_mask = cv2.dilate(mog_mask, np.ones((5, 5)), iterations=1)
+            mog_mask = mog_mask > 0
 
             # output: height x width x 2 ndarray which represents how much the pixel moved
             flow = cv2.calcOpticalFlowFarneback(curr, next, None, 0.5, 3, 30, 3, 7, 1.5, cv2.OPTFLOW_FARNEBACK_GAUSSIAN)
             mag, ang = cv2.cartToPolar(flow[..., 0], flow[..., 1])
 
             # drop movements that are too small (likely to be background)
-            # higher max likely means that the person move fast?
-            thresholds = mag > (max(np.mean(mag), np.max(mag) * 0.4))
-
-            # drop videos where it's likely the background movement is too noisy
-            if np.sum(thresholds) > (width * height) * 0.4:
-                continue
+            thresholds = mag > np.mean(mag)
             
             mask = thresholds * np.ones(thresholds.shape)
 
             # make the lines thicker?
-            mask = cv2.dilate(mask, np.ones((11, 11)), iterations=1)
+            mask = cv2.dilate(mask, np.ones((9, 9)), iterations=1)
 
             if previous_mask is None:
                 previous_mask = mask
                 continue
 
-            # union to prevent too mant missing details
+            # union to prevent too many missing details
             # there might be a case for intersection here too: more accurate, but lose more info
             curr_mask = np.zeros(mask.shape, dtype=np.bool8)
             curr_mask[np.logical_or(mask == 1, previous_mask == 1)] = True
 
-            # canny before masking so that the circles don't appear as artifacts
-            removed = np.uint8(cv2.Canny(curr, 50, 150) * curr_mask)
+            mog_coords = np.argwhere(mog_mask)
+            # median [y, x]
+            mog_median = np.median(mog_coords.transpose(), axis=1)
+            # essentially average sum of squares of cartesian distance from the median point            
+            mog_var = np.mean(np.square(mog_coords - mog_median))
+
+            curr_coords = np.argwhere(curr_mask)
+            # median [y, x]
+            curr_median = np.median(curr_coords.transpose(), axis=1)
+            # essentially average sum of squares of cartesian distance from the median point
+            curr_var = np.mean(np.square(curr_coords - curr_median))
+
+            # canny before masking so that the masked out parts don't appear as artifacts
+            lines = cv2.Canny(curr, 50, 150)
+            
+            print(i, "curr" if curr_var < mog_var else "mog")
+            mask_used = curr_mask if curr_var < mog_var else mog_mask
+            removed = np.uint8(lines * mask_used)
 
             previous_mask = mask
             
-            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "0.png"), cv2.Canny(curr, 50, 150))
-            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "1.png"), removed)
+            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "_original.png"), curr)
+            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "_of_mask.png"), np.ones(curr_mask.shape) * 255 * curr_mask)
+            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "_mog_mask.png"), np.ones(mog_mask.shape) * 255 * mog_mask)
+            cv2.imwrite(os.path.join(dir, "vid" + str(index) + "_" + str(i) + "removed.png"), removed)
 
-        os.remove(vid_path)
+        # os.remove(vid_path)
 
