@@ -69,7 +69,7 @@ class RecognitionModel:
         valid_every_k_epoch = learning_params['valid_freq']
 
         trigger_times = 0
-        patience = 10
+        patience = 5
 
         for epoch in range(epoch_num):  
             running_loss = 0
@@ -171,9 +171,9 @@ if __name__ == "__main__":
     recognition_model = RecognitionModel(device)
 
     learning_params = {
-        'batch_size': 32,
+        'batch_size': 24,
         'epoch': 50,
-        'lr': 5e-5,
+        'lr': 5e-4,
         'valid_freq': 1,
         'save_freq': 1
     }

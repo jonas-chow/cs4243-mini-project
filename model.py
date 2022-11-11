@@ -4,19 +4,28 @@ import torch.nn.functional as F
 from torchvision import models
 
 class BaseNN(nn.Module):
-    def __init__(self, pretrained = True, num_classes = 3, drop_rate = 0):
+    def __init__(self, categories=3):
         super(BaseNN, self).__init__()
-        resnet = models.resnet18(pretrained) #https://pytorch.org/vision/0.8/models.html
         
-        self.features = nn.Sequential(*list(resnet.children())[:-1]) # after avgpool 512x1
-
-        fc_in_dim = list(resnet.children())[-1].in_features # original fc layer's in dimention 512
-        self.fc = nn.Linear(fc_in_dim, num_classes) # new fc layer 512x8
+        # so i have no idea how many input channels we should have
+        # is it width * height * 3??? is it just 3?? idkkkkk
+        self.conv1 = nn.Conv2d(3, 32, kernel_size=(3, 3), padding=(1, 1))
+        self.conv2 = nn.Conv2d(32, 32, kernel_size=(3, 3), padding=(1, 1))
+        self.conv3 = nn.Conv2d(32, 16, kernel_size=(3, 3), padding=(1, 1))
+        self.fc1   = nn.Linear(65536, 256)
+        self.fc2   = nn.Linear(256, 128)
+        self.fc3   = nn.Linear(128, 128)
+        self.fc4   = nn.Linear(128, categories)
 
     def forward(self, x):
-        x = self.features(x)
-        x = x.view(x.size(0), -1)
-        
-        x = self.fc(x)
-
-        return F.softmax(x, dim=1) #classification output
+        out = F.relu(self.conv1(x))
+        out = F.max_pool2d(out, 2)
+        out = F.relu(self.conv2(out))
+        out = F.max_pool2d(out, 2)
+        out = F.relu(self.conv3(out))
+        out = out.view(out.size(0), -1)
+        out = F.relu(self.fc1(out))
+        out = F.relu(self.fc2(out))
+        out = F.relu(self.fc3(out))
+        out = self.fc4(out)
+        return out
